@@ -1,13 +1,28 @@
-name: 'PR Up to Date'
-description: 'Check if branches are up to date and merge the base branch into the pull request branch if necessary.'
+name: "PR Up to Date"
+description: "Check if branches are up to date and merge the base branch into the pull request branch if necessary."
 
 inputs:
   baseBranch:
     required: true
-    description: 'The base branch to compare and merge.'
+    description: "The base branch to compare and merge."
+
+  autoMerge:
+    required: false
+    description: "Automatically merge the base branch into the pull request branch if necessary."
+    default: "true"
+
+  descriptionMerged:
+    required: false
+    description: "Description of the merge commit."
+    default: "Merge ${{ github.event.pull_request.base.ref }} into ${{ github.event.pull_request.head.ref }}"
+
+  descriptionReminder:
+    required: false
+    description: "Description of the PR comment if 'autoMerge' is false."
+    default: "Branches are not up to date. Please merge ${{ github.event.pull_request.base.ref }} into ${{ github.event.pull_request.head.ref }}."
 
 runs:
-  using: 'composite'
+  using: "composite"
   steps:
     - name: Checkout
       uses: actions/checkout@v2
@@ -28,29 +43,37 @@ runs:
         BASE=$(git merge-base origin/${{ github.event.pull_request.base.ref }} HEAD)
         if [ $BASE = $(git rev-parse origin/${{ github.event.pull_request.base.ref }}) ]; then
           echo "Branches are up to date, skipping merge."
-          echo "::set-output name=mergeRequired::false"
+          echo "mergeRequired=false" >> $GITHUB_OUTPUT
         else
           echo "Branches are not up to date, merge is required."
-          echo "::set-output name=mergeRequired::true"
+          echo "mergeRequired=true" >> $GITHUB_OUTPUT
         fi
 
     - name: Merge base branch into PR branch
       shell: bash
-      if: steps.checkBranches.outputs.mergeRequired == 'true'
+      if: steps.checkBranches.outputs.mergeRequired == 'true' && inputs.autoMerge == 'true'
       run: |
         git merge --no-edit --no-commit origin/${{ github.event.pull_request.base.ref }}
         if [ $? -ne 0 ]; then
           echo "Merge conflict detected. Please resolve conflicts before merging."
           exit 1
         fi
-        git commit -m "Merge ${{ github.event.pull_request.base.ref }} into ${{ github.event.pull_request.head.ref }}"
+        git commit -m "${{ inputs.descriptionMerged }}"
 
     - name: Push changes
       shell: bash
-      if: steps.checkBranches.outputs.mergeRequired == 'true'
+      if: steps.checkBranches.outputs.mergeRequired == 'true' && inputs.autoMerge == 'true'
       run: |
         git push origin ${{ github.event.pull_request.head.ref }}
 
+    - name: Command on PR to remind the PR branch is not up to date
+      if: steps.checkBranches.outputs.mergeRequired == 'true' && inputs.autoMerge == 'false'
+      uses: thollander/actions-comment-pull-request@v3.0.1
+      with:
+        message: ${{ inputs.descriptionReminder }}
+        comment-tag: pr-up-to-date
+        mode: delete-on-completion
+
 branding:
-  icon: 'git-pull-request'
-  color: 'blue'
+  icon: "git-pull-request"
+  color: "blue"
