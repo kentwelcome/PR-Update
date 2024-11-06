@@ -18,7 +18,7 @@ inputs:
 
   descriptionReminder:
     required: false
-    description: 'Description of the PR comment if 'autoMerge' is false.'
+    description: 'Description of the PR comment if "autoMerge" is false.'
     default: 'Please merge `${{ github.event.pull_request.base.ref }}` into `${{ github.event.pull_request.head.ref }}`.'
 
 runs:

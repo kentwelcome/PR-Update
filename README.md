@@ -21,6 +21,9 @@ To use the "Merge Base Branch into PR" action in your GitHub workflows, follow t
 The action requires the following input:
 
 - `baseBranch` (required): The base branch to compare and merge with the pull request branch.
+- `autoMerge` (optional): A flag to enable or disable the automatic merge of the base branch into the pull request branch. Default is `true`.
+- `descriptionMerged` (optional): Customized the merge commit message.
+- `descriptionReminder` (optional): Customized the reminder message posted on the PR comment if autoMerge is disabled.
 
 ### Example Workflow
 
